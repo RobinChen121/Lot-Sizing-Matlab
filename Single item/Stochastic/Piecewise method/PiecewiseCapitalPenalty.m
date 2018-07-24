@@ -1,0 +1,161 @@
+function PiecewiseCapitalPenalty
+
+% parameters:
+a=10;v=1;pai=2;h=1;I0=0;B0=20;price=5;
+meand=[3,4,3,5,4,3,5,4];
+sigma=[1,1,1,1,1,1,1,1];
+
+M=5000;
+T=length(meand);
+
+% piecewise values:
+% nbpartitions = 4;
+% prob = [0.187555,0.312445,0.312445,0.187555];
+% means = [-1.43535,-0.415223,0.415223,1.43535];
+% error = 0.0339052;
+
+nbpartitions = 10;
+prob = [0.04206108420763477, 0.0836356495308449, 0.11074334596058821, 0.1276821455299152, 0.13587777477101692, 0.13587777477101692, 0.1276821455299152, 0.11074334596058821, 0.0836356495308449, 0.04206108420763477];
+means = [-2.133986195498256, -1.3976822972668839, -0.918199946431143, -0.5265753462727588, -0.17199013069262026, 0.17199013069262026, 0.5265753462727588, 0.918199946431143, 1.3976822972668839, 2.133986195498256];
+error = 0.005885974956458359;
+
+% standard variance values
+sigma_sum=zeros(T,T);
+for t=1:T
+    for j=1:t
+        sigma_sum(j,t)=sqrt(sum(sigma(j:t).^2));
+    end
+end
+
+% decision values
+delta=binvar(T,1);
+I=sdpvar(T,1);
+Iplus=sdpvar(T,1);
+Iminus=sdpvar(T,1);
+P=binvar(T,T);
+P=triu(P);
+
+% objective function
+%B=B0+price*(sum(meand)-Iminus(T))-(a*sum(delta)+h*sum(Iplus)+pai*sum(Iminus)+v*I(T)-v*I0+v*sum(meand));
+B=B0+price*(meand(1)-Iminus(1))-(a*delta(1)+h*Iplus(1)+pai*Iminus(1)+v*(I(1)+meand(1)-I0));
+for t=2:T
+    B=[B;B(t-1)+price*(meand(t)-Iminus(t)+Iminus(t-1))-(a*delta(t)+h*Iplus(t)+pai*Iminus(t)+v*(I(t)+meand(t)-I(t-1)))];
+end
+B=-B;
+
+% constraints
+deltaC=[I(1)-I0+meand(1)<=M*delta(1);I(2:T)+meand(2:T)'-I(1:T-1)<=M*delta(2:T)];
+QC0=[I(1)+meand(1)>=I0;I(2:T)+meand(2:T)'>=I(1:T-1)];
+PC1=(sum(P)==1);
+PC2=[];
+for t=1:T
+    for j=1:t
+        PC2=[PC2;P(j,t)>=delta(j)-sum(delta(j+1:t))];
+    end
+end
+PieceC1=[];
+for t=1:T
+    for i=1:nbpartitions
+        %PieceC1=[PieceC1;Iplus(t)>=sum(prob(1:i))*I(t)-prob(1:i)*means(1:i)'*P(1:t,t)'*sigma_sum(1:t,t)];
+        PieceC1=[PieceC1;Iplus(t)>=sum(prob(1:i))*I(t)-prob(1:i)*means(1:i)'*P(1:t,t)'*sigma_sum(1:t,t)+error*P(1:t,t)'*sigma_sum(1:t,t)];
+    end
+    %PieceC1=[PieceC1;Iplus(t)>=0];
+    PieceC1=[PieceC1;Iplus(t)>=error*P(1:t,t)'*sigma_sum(1:t,t)];
+end
+
+PieceC2=[];
+for t=1:T
+    for k=1:nbpartitions
+        %PieceC2=[PieceC2;Iminus(t)>=-I(t)+sum(prob(1:k))*I(t)-prob(1:k)*means(1:k)'*P(1:t,t)'*sigma_sum(1:t,t)];
+      PieceC2=[PieceC2;Iminus(t)>=-I(t)+sum(prob(1:k))*I(t)-prob(1:k)*means(1:k)'*P(1:t,t)'*sigma_sum(1:t,t)+error*P(1:t,t)'*sigma_sum(1:t,t)];
+    end
+    %PieceC2=[PieceC2;Iminus(t)>=-I(t)];
+    PieceC2=[PieceC2;Iminus(t)>=-I(t)+error*P(1:t,t)'*sigma_sum(1:t,t)];
+end
+
+QC1=[delta(1)*a+(I(1)-I0+meand(1))*v<=B0];
+for t=2:T
+    QC1=[QC1;delta(t)*a+(I(t)-I(t-1)+meand(t))*v<=B(t-1)];
+end
+
+
+constraints=[deltaC;QC0;PC1;PC2;PieceC1;PieceC2;QC1];
+options=sdpsettings('solver','cplex');
+optimize(constraints,B(end),options);
+
+delta=value(delta);
+I=value(I);
+Iplus=value(Iplus);
+Iminus=value(Iminus);
+P=value(P);
+B=value(B);
+
+fprintf('各阶段库存水平 I= \n');
+for i=1:T
+    fprintf('  %.2f',I(i));
+end
+fprintf('\n');
+fprintf('各阶段期望需求量 meand= \n');
+for i=1:T
+    fprintf('  %.2f',meand(i));
+end
+fprintf('\n');
+fprintf('各阶段库存量 I+ = \n');
+for i=1:T
+    fprintf('  %.4f',Iplus(i));
+end
+fprintf('\n');
+fprintf('各阶段缺货量 I- =\n');
+for i=1:T
+    fprintf('  %.4f',Iminus(i));
+end
+fprintf('\n');
+fprintf('各阶段是否订货\n');
+for i=1:T
+    fprintf('  %.2f',delta(i));
+end
+fprintf('\n');
+fprintf('各阶段补货上限 R=\n');
+for i=1:T
+    fprintf('  %.4f',I(i)+meand(i));
+end
+fprintf('\n');
+Q=zeros(1,T);
+fprintf('各阶段订货量 Q=\n');
+Q(1)=value(I(1)+meand(1)-I0);
+fprintf('  %.2f',Q(1));
+for t=2:T
+    Q(t)=I(t)+meand(t)-I(t-1);
+    fprintf('  %.2f',Q(t));
+end
+fprintf('\n');
+fprintf('各阶段是否生产：\n');
+for i=1:T
+    fprintf('  %.2f',delta(i));
+end
+fprintf('\n');
+fprintf('初始资金：%.2f    ',B0);
+fprintf('销售收益：%.2f    ',price*(sum(Q)+I0-Iplus(T)));
+fprintf('生产总成本：');
+fprintf('%.2f    ',a*sum(delta)+h*sum(Iplus)+pai*sum(Iminus)+v*sum(Q));
+fprintf('\n');
+fprintf('最终资金：');
+fprintf('%.4f  ',-B(T));
+fprintf('\n');
+
+R=I+meand';
+I=zeros(1,T);Q=zeros(1,T);B=zeros(1,T);
+realD=meand;
+if delta(1)==1 
+    Q(1)=R(1)-I0;
+end
+I(1)=I0+Q(1)-realD(1);
+B(1)=B0+price*min(I0+Q(1),realD(1))-a*delta(1)-v*Q(1)-h*max(I(1),0)-pai*max(-I(1),0);
+for t=2:T
+    if delta(t)==1
+        Q(t)=min((B(t-1)-a)/v,R(t)-I(t-1));
+    end
+    I(t)=I(t-1)+Q(t)-realD(t);
+    B(t)=B(t-1)+price*min(max(I(t-1),0)+Q(t),realD(t)+max(-I(t-1),0))-a*delta(t)-v*Q(t)-h*max(I(t),0)-pai*max(-I(t),0);
+end
+end
