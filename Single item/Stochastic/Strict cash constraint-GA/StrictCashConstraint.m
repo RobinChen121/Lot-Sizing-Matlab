@@ -30,7 +30,7 @@ save('demandSample.mat', 'demandSample');
 
 %% invoke ga
 nvars = 3*T;
-intcon = [];
+intcon = 1: 3 * T;
 lb = zeros(1, 3* T);
 meanD = mean(demand);
 ub = [2*meanD, iniCash*50, 5*meanD];

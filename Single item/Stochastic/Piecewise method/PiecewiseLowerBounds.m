@@ -5,9 +5,9 @@ function PiecewiseLowerBounds
 % output the coordinates of the breakpoints and a figure  
 % num is the number of the lower bounds parts  
  
-mu = 0;
-sigma = 1;
-num = 5;
+mu = 10;
+sigma = 2;
+num = 3;
 
 % the complementary loss function  
 syms x t;  
@@ -140,7 +140,7 @@ for i=2:num
     fplot(@(t)slops(i)*(t-x(i-1))+CL(x(i-1)),[bp(i-1),bp(i)],'r','Linewidth',1.5);  
 end  
 fplot(@(t)slops(end)*(t-endp)+CL(endp),[bp(end),endp],'r','Linewidth',1.5);  
-title(['the results of the piecewise approximation I^{+} having ',num2str(num+1),' lowbounds']);  
+%title(['the results of the piecewise approximation I^{+} having ',num2str(num+1),' lowbounds']);  
 % for i=1:num  
 %     text(bp(i),bp_value(i),['\leftarrow',num2str(i)]);  
 % end  
@@ -149,6 +149,7 @@ for i=1:num-1
     text(x(i),CL(x(i)),['\leftarrow',num2str(i+1)]);  
 end  
 text(0.5*bp(end)+0.5*endp,0.5*bp_value(end)+0.5*CL(endp),['\leftarrow',num2str(num+1)]); 
+legend('期望库存量曲线', '拟合线段', 'location', 'Northwest');
 hold off;  
   
 end  

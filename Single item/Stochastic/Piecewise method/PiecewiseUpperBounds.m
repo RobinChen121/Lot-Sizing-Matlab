@@ -6,9 +6,9 @@ function PiecewiseUpperBounds
 % num is the number of the upper bounds parts
 % 上界部分比下界部分多一个
 
-mu = 15;
-sigma = 3;
-num = 5;
+mu = 10;
+sigma = 2;
+num = 3;
 
 
 % the complementary loss function
@@ -132,10 +132,11 @@ for i=2:num-1
     fplot(@(t)slops(i)*(t-x(i-1))+CL(x(i-1)),[x(i-1),x(i)],'r','Linewidth',1.5);
 end
 fplot(@(t)slops(end)*(t-x(end))+CL(x(end)),[x(end),endp],'r','Linewidth',1.5);
-title(['the results of the piecewise approximation I^{+} having ',num2str(num),' upbounds']);
+%title(['the results of the piecewise approximation I^{+} having ',num2str(num),' upbounds']);
 for i=1:num
     text(bp(i),bp_value(i),['\leftarrow',num2str(i)]);
 end
+legend('期望库存量曲线', '拟合线段', 'location', 'Northwest');
 hold off;
 
 end
