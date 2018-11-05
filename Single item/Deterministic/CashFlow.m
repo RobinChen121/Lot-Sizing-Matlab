@@ -14,14 +14,14 @@ function CashFlow
 % ************************************************************************
 
 
-d = [8, 10, 10];  
+d = [6, 18.8, 6.4];  
 N = length(d);
-p = 5 * ones(1, N);
-s = 10 * ones(1, N);
+p = 4 * ones(1, N);
+s = 20 * ones(1, N);
 c = 1 * ones(1, N);
 h = 1 * ones(1, N);
 pai = 0 * ones(1, N);
-B0 = 15;
+B0 = 30;
 BL = 0; L = 0; r = 0;
 
 BB=zeros(N,N);
@@ -301,6 +301,15 @@ fprintf('各阶段生产量:\n');
 fprintf('y= ');
 for i=1:N
     fprintf('%6.2f\t',y(i));
+    if mod(i,20)==0
+        fprintf('\n');
+    end
+end
+fprintf('\n');
+fprintf('各阶段缺货量:\n');
+fprintf('w= ');
+for i=1:N
+    fprintf('%6.2f\t',w(i));
     if mod(i,20)==0
         fprintf('\n');
     end

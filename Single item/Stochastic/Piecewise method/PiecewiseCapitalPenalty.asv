@@ -74,14 +74,14 @@ for t=1:T
 end
 
 
-% whether there are cash constraint
+% whether 
 QC1=[delta(1)*a+(I(1)-I0+meand(1))*v<=B0];
 for t=2:T
     QC1=[QC1;delta(t)*a+(I(t)-I(t-1)+meand(t))*v<=B(t-1)];
 end
 
 
-constraints=[deltaC;PC1;PC2;PieceC1;PieceC2; QC0; QC1];
+constraints=[deltaC;QC0;PC1;PC2;PieceC1;PieceC2;QC1];
 options=sdpsettings('solver','cplex');
 optimize(constraints,B(end),options);
 
