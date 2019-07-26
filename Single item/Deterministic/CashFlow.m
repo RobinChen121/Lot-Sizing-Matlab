@@ -8,6 +8,7 @@ function CashFlow
 % s: fixed ordering cost
 % c: unit vari ordering cost
 % h: unit holding cost
+% BB: end-of-period cash in each ordering cycle of the matrix
 %
 % author: Zhen Chen
 % time: 2018-09-27, 17:16
@@ -24,13 +25,13 @@ pai = 0 * ones(1, N);
 B0 = 30;
 BL = 0; L = 0; r = 0;
 
-BB=zeros(N,N);
-B=zeros(1,N); %各阶段期末资金
-x=zeros(1,N);
-y=zeros(1,N);
-w=zeros(1,N);
-mark=zeros(1,N);
-initial_B=zeros(1,N+1);
+BB = zeros(N, N);
+B = zeros(1, N); %各阶段期末资金
+x = zeros(1, N);
+y = zeros(1, N);
+w = zeros(1, N);
+mark = zeros(1, N);
+initial_B = zeros(1, N + 1);
 
 for i=1:N
     for j=i:N
@@ -41,7 +42,7 @@ for i=1:N
                 if n==m
                     temp_h1(m,n)=0;
                 else
-                    temp_h1(m,n)=h(m+i-1);%错误在这里
+                    temp_h1(m,n)=h(m+i-1);
                 end
             end
         end
@@ -56,7 +57,7 @@ for i=1:N
         f=c(i)*ones(1,j-i+1)-p(i:j)-pai(i:j)+temp_h(j-i+1,:);
         f=f';
         if i==1
-            initial_B(i)=B0+BL;
+            initial_B(i)=B0 + BL;
         end
         lb=zeros(j-i+1,1); ub=d(i:j)';
         A=zeros(j-i+1,j-i+1);b=zeros(j-i+1,1);
@@ -65,7 +66,7 @@ for i=1:N
             if j<L
                 b(k)=initial_B(i)-s(i)-pai(i:k+i-1)*d(i:k+i-1)';
             else
-                b(k)=initial_B(i)-s(i)-pai(i:k+i-1)*d(i:k+i-1)'-BL*(1+r)^L;
+                b(k)=initial_B(i)-s(i)-pai(i:k+i-1)*d(i:k+i-1)' - BL*(1+r)^L;
             end
         end
         A(j-i+1,:)=c(i)*ones(1,j-i+1);
@@ -78,7 +79,7 @@ for i=1:N
         [~,fval,exitflag]=linprog(f,A,b,[],[],lb,ub); %,zeros(j-i+1,1),options);%%默认采用内点法
         if exitflag==1
             BB(i,j)=-fval-s(i)-pai(i:j)*d(i:j)'+initial_B(i);
-            if BB(i,j)<initial_B(i)-pai(i:j)*d(i:j)' %原因在这里
+            if BB(i,j)<initial_B(i)-pai(i:j)*d(i:j)' 
                 BB(i,j)=initial_B(i)-pai(i:j)*d(i:j)';
             end
         else
@@ -94,7 +95,7 @@ end
 %%根据现金流矩阵反推
 %back track
 j=N;
-temp_flag=zeros(1,N);%用来记录生不如死的点
+temp_flag=zeros(1,N);%用来记录一些特殊点
 while j>=1
     if mark(j)>0
         x(mark(j))=1;
@@ -166,11 +167,6 @@ while i<=N
                     A(k,:)=c(i)*ones(1,index-i+1)-temp_p(k,:)+temp_h(k,:);
                 end
                 [sa_demand(i:index),~,~]=linprog(f,A,b,[],[],lb,ub);%%默认采用内点法
-                %if exitflag~=1
-                    %sa_demand(i:index)=zeros(1,index-i+1);
-                    %x(i)=0;
-                    %%%出现了一个小问题，为啥exitflag没有返回1
-                %end
                 i=j;
                 break;
             end
